@@ -16,15 +16,6 @@ class Field:
         super().__init__()
         self.length = length
 
-    def __get__(self, obj, objtype):
-        print('Получаю', self.length)
-        return self.length
-
-    def __set__(self, type_field, length):
-        print('Обновляю', length)
-        self.type_field = type_field
-        self.length = length
-
 
 class IntField(Field):
     def __init__(self, **kwargs):
@@ -81,11 +72,12 @@ def migrate(cls):
     table = "CREATE TABLE IF NOT EXISTS {0}".format(cls.__class__.__name__).lower()
     rows = ""
     for row in cls.__dir__():
-        if not row.startswith("__") and in_dict(cls, row):
-            type_data = associate_dict[cls.__class__.__dict__[row].__class__.__name__]
-            value = cls.__class__.__dict__[row].__dict__
+        attr = getattr(cls, row)
+        if isinstance(attr, Field):
+            type_data = associate_dict[attr.__class__.__name__]
+            value = getattr(attr, 'length')
             rows += row + " " + type_data + "({})".format(
-                value['length']) + ","
+                value) + ","
     rows = "(" + rows + "id INT AUTO_INCREMENT PRIMARY KEY)"
     print(rows)
     cursor.execute(table + rows + ";")
