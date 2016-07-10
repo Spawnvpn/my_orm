@@ -3,6 +3,7 @@ import MySQLdb.cursors
 
 
 class AbstractModel:
+
     def get_fields(self):
         fields = []
         for field in self.__dir__():
@@ -13,10 +14,6 @@ class AbstractModel:
 
     def save(self):
         insert(self)
-        """
-        Передаем сюда инстанс класса наследника, определяем класс инстанса,
-        определяем поля класса (таблицы/атрибуты), затем запись этого в базу
-        """
 
 
 class Field:
@@ -45,16 +42,10 @@ class Boolean(Field):
         super().__init__(**kwargs)
 
 
-class Users(AbstractModel):
-    username = CharField(length=20)
-    password = IntField()
-    city = CharField(length=30)
-
-
 def get_connection():
     connection = MySQLdb.connect(user='root',
                                  passwd='3926',
-                                 db='books',
+                                 db='first',
                                  cursorclass=MySQLdb.cursors.DictCursor)
     return connection
 
@@ -70,6 +61,7 @@ def migrate(cls):
     cursor = connection.cursor()
     table = "CREATE TABLE IF NOT EXISTS {0}".format(cls.__class__.__name__).lower()
     rows = ""
+
     for row in cls.__dir__():
         attr = getattr(cls, row)
         if isinstance(attr, Field):
@@ -77,22 +69,54 @@ def migrate(cls):
             value = getattr(attr, 'length')
             rows += row + " " + type_data + "({})".format(
                 value) + ","
-    rows = "(" + rows + "id INT AUTO_INCREMENT PRIMARY KEY)"
-    cursor.execute(table + rows + ";")
+    rows = "(id INT AUTO_INCREMENT PRIMARY KEY," + rows[:len(rows) - 1] + ")"
+    cursor.execute(table + rows)
 
 
-def select():
-    pass
+def select(model_class, **kwargs):
+    connection = get_connection()
+    cursor = connection.cursor()
+    name = model_class.__name__.lower() + " "
+    where = ""
+    if kwargs:
+        q = "SELECT "
+        # fields = ""
+        for key, value in kwargs.items():
+            if key.endswith("__gt"):
+                operator = " > "
+                key = key[:len(key) - 4]
+            elif key.endswith("__gte"):
+                operator = " >= "
+                key = key[:len(key) - 5]
+            elif key.endswith("__lt"):
+                operator = " < "
+                key = key[:len(key) - 4]
+            elif key.endswith("__lte"):
+                operator = " <= "
+                key = key[:len(key) - 5]
+            else:
+                operator = " = "
+            where += key + "{}" "'{}'" .format(operator, value) + " AND "
+            # fields += select_id + ", "
+        where = where[:len(where) - 4]
+        # fields = fields[:len(fields) - 2]
+        q += "*" + " FROM " + name + "WHERE " + where
+    else:
+        q = "SELECT * FROM %s" % name
+    cursor.execute(q)
+
+    return cursor.fetchall()
 
 
 def insert(instance):
     connection = get_connection()
     cursor = connection.cursor()
-    name = (instance.__class__.__name__).lower()
+    name = instance.__class__.__name__.lower()
     values = ''
     command = "INSERT INTO %s " % name
     str_fields = ""
     fields = instance.get_fields()
+
     for attr in fields:
         str_fields += " " + attr + ","
         value = getattr(instance, attr)
@@ -100,13 +124,5 @@ def insert(instance):
     str_fields = "(" + str_fields[1:len(str_fields) - 1] + ")"
     values = "(" + values[1:len(values) - 1] + ")"
     command += str_fields + " VALUES " + values
-    print(command)
-    cursor.execute(command + ";")
-
-
-migrate(Users())
-petya = Users()
-petya.username = "Petya"
-petya.password = "123456"
-petya.city = "London"
-petya.save()
+    cursor.execute(command)
+    connection.commit()

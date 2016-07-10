@@ -5,7 +5,7 @@ class Users(AbstractModel):
     username = CharField(length=20)
     password = IntField()
     city = CharField(length=30)
-    age = IntField
+    age = IntField()
 
 
 class Cars(AbstractModel):
@@ -33,25 +33,27 @@ migrate(PhotoCamera())
 bob = Users()
 bob.username = "Bob"
 bob.age = 21
-bob.password = 5664586
+bob.password = 589436
 bob.city = "London"
 
-first_car = Cars()
-first_car.mark = "BMW"
-first_car.model = "M650"
-first_car.engine_type = "Benzine"
-first_car.color = "White"
-first_car.since = "2016"
+second_car = Cars()
+second_car.mark = "Mercedes"
+second_car.model = "E230"
+second_car.engine_type = "Benzine"
+second_car.color = "Black"
+second_car.since = "2008"
 
-first_camera = PhotoCamera()
-first_camera.mark = "Nikon"
-first_camera.model = "D4"
-first_camera.battery = "Li-ion"
-first_camera.frame_speed = "8 frames per second"
-first_camera.matrix_type = "Full frame"
-first_camera.flash_cards = "2"
-first_camera.since = "2014"
+second_camera = PhotoCamera()
+second_camera.mark = "Canon"
+second_camera.model = "5D Mark II"
+second_camera.battery = "Li-ion"
+second_camera.frame_speed = "6 frames per second"
+second_camera.matrix_type = "Full frame"
+second_camera.flash_cards = 2
+second_camera.since = "2013"
 
 bob.save()
-first_car.save()
-first_camera.save()
+second_car.save()
+second_camera.save()
+
+print(select(Users, age__gt=22))
