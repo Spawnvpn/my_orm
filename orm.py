@@ -3,8 +3,16 @@ import MySQLdb.cursors
 
 
 class AbstractModel:
+    def get_fields(self):
+        fields = []
+        for field in self.__dir__():
+            attr = getattr(self.__class__, field)
+            if isinstance(attr, Field):
+                fields.append(field)
+        return fields
+
     def save(self):
-        print(self.__class__.__name__)
+        insert(self)
         """
         Передаем сюда инстанс класса наследника, определяем класс инстанса,
         определяем поля класса (таблицы/атрибуты), затем запись этого в базу
@@ -51,14 +59,6 @@ def get_connection():
     return connection
 
 
-def in_dict(cls, row):
-    try:
-        cls.__class__.__dict__[row]
-        return True
-    except KeyError:
-        return False
-
-
 def migrate(cls):
     associate_dict = {
         'IntField': 'INT',
@@ -66,7 +66,6 @@ def migrate(cls):
         'FloatField': 'FLOAT',
         'Boolean': 'BOOL',
     }
-    print(cls.__class__.__dict__)
     connection = get_connection()
     cursor = connection.cursor()
     table = "CREATE TABLE IF NOT EXISTS {0}".format(cls.__class__.__name__).lower()
@@ -79,7 +78,6 @@ def migrate(cls):
             rows += row + " " + type_data + "({})".format(
                 value) + ","
     rows = "(" + rows + "id INT AUTO_INCREMENT PRIMARY KEY)"
-    print(rows)
     cursor.execute(table + rows + ";")
 
 
@@ -87,8 +85,24 @@ def select():
     pass
 
 
-def insert():
-    pass
+def insert(instance):
+    connection = get_connection()
+    cursor = connection.cursor()
+    name = (instance.__class__.__name__).lower()
+    values = ''
+    command = "INSERT INTO %s " % name
+    str_fields = ""
+    fields = instance.get_fields()
+    for attr in fields:
+        str_fields += " " + attr + ","
+        value = getattr(instance, attr)
+        values += " " + "'%s'," % value
+    str_fields = "(" + str_fields[1:len(str_fields) - 1] + ")"
+    values = "(" + values[1:len(values) - 1] + ")"
+    command += str_fields + " VALUES " + values
+    print(command)
+    cursor.execute(command + ";")
+
 
 migrate(Users())
 petya = Users()
@@ -96,9 +110,3 @@ petya.username = "Petya"
 petya.password = "123456"
 petya.city = "London"
 petya.save()
-
-
-"""
-azaz = getattr(cls, row)
-if isnstance(azaz):
-"""
