@@ -78,22 +78,19 @@ def select(model_class, **kwargs):
     cursor = connection.cursor()
     name = model_class.__name__.lower() + " "
     where = ""
+    associated_dict = {
+        '__gt': ' > ',
+        '__gte': ' >= ',
+        '__lt': ' < ',
+        '__lte': ' <= '
+    }
     if kwargs:
         q = "SELECT "
         # fields = ""
         for key, value in kwargs.items():
-            if key.endswith("__gt"):
-                operator = " > "
-                key = key[:len(key) - 4]
-            elif key.endswith("__gte"):
-                operator = " >= "
-                key = key[:len(key) - 5]
-            elif key.endswith("__lt"):
-                operator = " < "
-                key = key[:len(key) - 4]
-            elif key.endswith("__lte"):
-                operator = " <= "
-                key = key[:len(key) - 5]
+            if "__" in key:
+                operator = associated_dict[key[key.find("_"):]]
+                key = key[:key.find("_")]
             else:
                 operator = " = "
             where += key + "{}" "'{}'" .format(operator, value) + " AND "
